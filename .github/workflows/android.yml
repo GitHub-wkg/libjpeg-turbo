@@ -41,11 +41,9 @@ jobs:
           -DANDROID_PLATFORM=android-$ANDROID_API_LEVEL \
           -DCMAKE_BUILD_TYPE=Release \
           -DENABLE_SHARED=ON \
-                # 指定安装前缀，非常重要
           -DCMAKE_INSTALL_PREFIX=../../dist/${{ matrix.abi }} \
           ../..
         make -j$(nproc)
-        
         make install
 
     - name: Upload artifacts
