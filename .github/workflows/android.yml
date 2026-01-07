@@ -22,9 +22,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Android NDK
-      run: |
-        echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> $GITHUB_ENV
+    - name: Setup Android SDK and NDK
+      uses: android-actions/setup-android@v2
+      with:
+        ndk: 21.0.6113669  # 指定 NDK 版本
+        run: |
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> $GITHUB_ENV
 
     - name: Install CMake via system package manager
       run: sudo apt-get update && sudo apt-get install -y cmake
