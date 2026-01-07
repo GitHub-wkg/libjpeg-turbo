@@ -5,73 +5,44 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch: # 允许手动触发
+  workflow_dispatch:
 
 env:
-  NDK_VERSION: '26.2.11394342'  # 使用较新且稳定的NDK版本
-  CMAKE_VERSION: '3.22.1'
-  ANDROID_API_LEVEL: '21'  # 最低支持的Android API级别
+  NDK_VERSION: '26.2.11394342'
+  ANDROID_API_LEVEL: '21'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        abi: [arm64-v8a, armeabi-v7a, x86_64, x86]
-    
+        abi: [arm64-v8a, armeabi-v7a] # 可根据需要添加 x86_64, x86
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        submodules: recursive  # 如果libjpeg-turbo作为子模块需要此项
-
-    - name: Set up JDK
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Set up Android SDK
-      uses: android-actions/setup-android@v2
-
-    - name: Set up CMake
-      uses: crazy-max/ghaction-setup-cmake@v1
-      with:
-        version: ${{ env.CMAKE_VERSION }}
 
     - name: Set up Android NDK
       run: |
         echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> $GITHUB_ENV
-        echo "NDK_VERSION=$NDK_VERSION" >> $GITHUB_ENV
-        echo "ANDROID_API_LEVEL=$ANDROID_API_LEVEL" >> $GITHUB_ENV
+
+    - name: Install CMake via system package manager
+      run: sudo apt-get update && sudo apt-get install -y cmake
 
     - name: Build for ${{ matrix.abi }}
       run: |
-        mkdir -p build/${{ matrix.abi }}
-        cd build/${{ matrix.abi }}
-        
+        mkdir -p build/${{ matrix.abi }} && cd build/${{ matrix.abi }}
         cmake -G"Unix Makefiles" \
           -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
           -DANDROID_ABI=${{ matrix.abi }} \
           -DANDROID_PLATFORM=android-$ANDROID_API_LEVEL \
-          -DANDROID_NDK=$ANDROID_NDK_HOME \
           -DCMAKE_BUILD_TYPE=Release \
           -DENABLE_SHARED=ON \
-          -DENABLE_STATIC=OFF \
-          -DCMAKE_INSTALL_PREFIX=../../../output/${{ matrix.abi }} \
-          ../../../
-        
+          ../..
         make -j$(nproc)
-        make install
-
-    - name: Collect artifacts
-      run: |
-        mkdir -p artifacts
-        cp -r output/${{ matrix.abi }} artifacts/${{ matrix.abi }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: libjpeg-turbo-${{ matrix.abi }}
-        path: artifacts/${{ matrix.abi }}
-        retention-days: 30
+        path: build/${{ matrix.abi }}/libturbojpeg.so
